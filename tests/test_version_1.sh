@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-VERSION=0
+VERSION=1
 PASS=0
 FAIL=0
 
@@ -47,6 +47,19 @@ wait_for_http() {
     return 1
 }
 
+wait_for_app() {
+    local name=$1
+    local retries=20
+    while [ $retries -gt 0 ]; do
+        if podman ps --filter "label=type=app" --format '{{.Names}}' | grep -q "^${name}$"; then
+            return 0
+        fi
+        sleep 1
+        retries=$((retries-1))
+    done
+    return 1
+}
+
 echo "=== Test version-$VERSION ==="
 echo
 
@@ -67,7 +80,7 @@ run "build" make build VERSION=$VERSION
 run "cluster_start" make cluster_start VERSION=$VERSION
 
 # Attente des containers
-for node in node-1 node-2 node-3 app-manager; do
+for node in node-1 node-2 node-3 app-controller; do
     if wait_for_container "$node"; then
         ok "container $node démarré"
     else
@@ -77,27 +90,32 @@ done
 
 # Attente API
 if wait_for_http "http://localhost:8080"; then
-    ok "app-manager répond sur :8080"
+    ok "app-controller répond sur :8080"
 else
-    fail "app-manager ne répond pas sur :8080"
+    fail "app-controller ne répond pas sur :8080"
 fi
 
-# app_apply
+# app_apply (déclare l'état désiré)
 run "app_apply" make app_apply VERSION=$VERSION NAME=test-app IMAGE=nginx:alpine
 
-# Vérification que l'app tourne sur un noeud
-sleep 2
-if podman ps --filter "label=type=app" --format '{{.Names}}' | grep -q "^test-app$"; then
-    ok "app test-app tourne sur un noeud"
+# Attente réconciliation (boucle toutes les 7s)
+if wait_for_app "test-app"; then
+    ok "app test-app démarrée par la boucle de réconciliation"
 else
-    fail "app test-app introuvable"
+    fail "app test-app introuvable après réconciliation"
 fi
 
 # apps_list
 run "apps_list" make apps_list VERSION=$VERSION
 
-# app_crash
+# app_crash + self-healing
 run "app_crash" make app_crash VERSION=$VERSION NAME=test-app
+
+if wait_for_app "test-app"; then
+    ok "self-healing : test-app redémarrée après crash"
+else
+    fail "self-healing : test-app non redémarrée après crash"
+fi
 
 # node_stop / node_start
 run "node_stop"  make node_stop  VERSION=$VERSION NODE=node-1

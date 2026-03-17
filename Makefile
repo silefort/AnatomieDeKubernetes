@@ -40,7 +40,28 @@ cluster_restart: cluster_stop apps_clean cluster_start
 
 logs:
 	clear
-	@NC='\033[0m'; \
+	@RED='\033[0;31m'; \
+	GREEN='\033[0;32m'; \
+	YELLOW='\033[0;33m'; \
+	BLUE='\033[0;34m'; \
+	MAGENTA='\033[0;35m'; \
+	CYAN='\033[0;36m'; \
+	BRIGHT_MAGENTA='\033[1;35m'; \
+	BRIGHT_CYAN='\033[1;36m'; \
+	NC='\033[0m'; \
+	get_color() { \
+		case "$$1" in \
+			app-manager) echo "$$BLUE" ;; \
+			app-controller) echo "$$CYAN" ;; \
+			api-server) echo "$$MAGENTA" ;; \
+			node-binder) echo "$$BRIGHT_MAGENTA" ;; \
+			node-controller) echo "$$BRIGHT_CYAN" ;; \
+			node-1) echo "$$RED" ;; \
+			node-2) echo "$$GREEN" ;; \
+			node-3) echo "$$YELLOW" ;; \
+			*) echo "$$NC" ;; \
+		esac; \
+	}; \
 	colorize_logs() { \
 		local service=$$1; \
 		local color=$$2; \
@@ -50,11 +71,24 @@ logs:
 			done; \
 		fi; \
 	}; \
-	colorize_logs "app-manager" '\033[0;34m' & \
-	colorize_logs "node-1"      '\033[0;31m' & \
-	colorize_logs "node-2"      '\033[0;32m' & \
-	colorize_logs "node-3"      '\033[0;33m' & \
-	wait
+	if [ -n "$(SERVICE)" ]; then \
+		services=$$(echo "$(SERVICE)" | tr ',' ' '); \
+		for service in $$services; do \
+			color=$$(get_color "$$service"); \
+			colorize_logs "$$service" "$$color" & \
+		done; \
+		wait; \
+	else \
+		colorize_logs "app-manager" "$$BLUE" & \
+		colorize_logs "app-controller" "$$CYAN" & \
+		colorize_logs "api-server" "$$MAGENTA" & \
+		colorize_logs "node-binder" "$$BRIGHT_MAGENTA" & \
+		colorize_logs "node-controller" "$$BRIGHT_CYAN" & \
+		colorize_logs "node-1" "$$RED" & \
+		colorize_logs "node-2" "$$GREEN" & \
+		colorize_logs "node-3" "$$YELLOW" & \
+		wait; \
+	fi
 
 app_create: app_apply
 
@@ -103,7 +137,12 @@ watch:
 	watch -t -n 2 "VERSION=$(VERSION) $(MAKE) --no-print-directory _watch_display"
 
 _watch_display:
-	@echo "=== APPS EN COURS ===" ; \
+	@if [ "$(VERSION)" = "1" ]; then \
+		echo "=== ÉTAT DÉSIRÉ (apps.json) ===" ; \
+		python3 -c 'import json,os;d=json.load(open("version-$(VERSION)/apps.json")) if os.path.exists("version-$(VERSION)/apps.json") else {};[print(f"  {n}: {json.dumps(i)}") for n,i in sorted(d.items())] if d else print("  (aucune app)")' ; \
+		echo ; \
+	fi ; \
+	echo "=== APPS EN COURS ===" ; \
 	for node in node-1 node-2 node-3; do \
 		echo ; \
 		echo "**$$node**" ; \
