@@ -75,9 +75,6 @@ for node in node-1 node-2 node-3 app-manager; do
     fi
 done
 
-# cluster_list
-run "cluster_list" make cluster_list VERSION=$VERSION
-
 # Attente API
 if wait_for_http "http://localhost:8080"; then
     ok "app-manager répond sur :8080"
