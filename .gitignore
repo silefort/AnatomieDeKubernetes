@@ -3,6 +3,11 @@
 *.env
 demo/
 
+# Artefacts runtime cluster
+.paused_*
+apps.json
+nodes.json
+
 # Python
 __pycache__/
 *.py[cod]
