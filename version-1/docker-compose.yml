@@ -1,0 +1,72 @@
+version: '3.8'
+
+x-node: &node-template
+  build:
+    context: ..
+    dockerfile: shared/Dockerfile
+  command: >-
+    bash -c "
+    ln -sf /var/run/podman.sock /var/run/docker.sock &&
+    echo $$NODE_NAME > /etc/node_name &&
+    /usr/sbin/sshd &&
+    echo NODE $$NODE_NAME demarre &&
+    sleep infinity
+    "
+  volumes:
+    - .:/app
+    - ../shared:/shared
+    - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/podman.sock
+  working_dir: /app
+  labels:
+    - "type=node"
+
+services:
+  app-controller:
+    build:
+      context: ..
+      dockerfile: shared/Dockerfile
+    container_name: app-controller
+    command: >-
+      sh -c "
+      echo '{}' > /app/apps.json &&
+      echo 'Démarrage de l app-controller et de l api-server' &&
+      python3 -W ignore app/app_controller.py &
+      python3 -W ignore app/api_server.py
+      "
+    volumes:
+      - .:/app
+      - ../shared:/shared
+    ports:
+      - "8080:8080"
+    depends_on:
+      - node-1
+      - node-2
+      - node-3
+    working_dir: /app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONWARNINGS=ignore
+      - PYTHONPATH=/shared
+    labels:
+      - "type=control-plane"
+
+  node-1:
+    <<: *node-template
+    container_name: node-1
+    hostname: node-1
+    environment:
+      - NODE_NAME=node-1
+
+  node-2:
+    <<: *node-template
+    container_name: node-2
+    hostname: node-2
+    environment:
+      - NODE_NAME=node-2
+
+  node-3:
+    <<: *node-template
+    container_name: node-3
+    hostname: node-3
+    environment:
+      - NODE_NAME=node-3
