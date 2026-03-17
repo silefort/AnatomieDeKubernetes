@@ -1,0 +1,66 @@
+version: '3.8'
+
+x-node: &node-template
+  build:
+    context: ..
+    dockerfile: shared/Dockerfile
+  command: >-
+    bash -c "
+    ln -sf /var/run/podman.sock /var/run/docker.sock &&
+    echo $$NODE_NAME > /etc/node_name &&
+    /usr/sbin/sshd &&
+    echo NODE $$NODE_NAME demarre &&
+    sleep infinity
+    "
+  volumes:
+    - .:/app
+    - ../shared:/shared
+    - ${XDG_RUNTIME_DIR}/podman/podman.sock:/var/run/podman.sock
+  working_dir: /app
+  labels:
+    - "type=node"
+
+services:
+  app-manager:
+    build:
+      context: ..
+      dockerfile: shared/Dockerfile
+    container_name: app-manager
+    command: sh -c "echo 'App Manager démarré sur le port 8080' && python3 -W ignore app_manager.py"
+    volumes:
+      - .:/app
+      - ../shared:/shared
+    ports:
+      - "8080:8080"
+    depends_on:
+      - node-1
+      - node-2
+      - node-3
+    working_dir: /app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONWARNINGS=ignore
+      - PYTHONPATH=/shared
+    labels:
+      - "type=control-plane"
+
+  node-1:
+    <<: *node-template
+    container_name: node-1
+    hostname: node-1
+    environment:
+      - NODE_NAME=node-1
+
+  node-2:
+    <<: *node-template
+    container_name: node-2
+    hostname: node-2
+    environment:
+      - NODE_NAME=node-2
+
+  node-3:
+    <<: *node-template
+    container_name: node-3
+    hostname: node-3
+    environment:
+      - NODE_NAME=node-3
