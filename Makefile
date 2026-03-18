@@ -156,6 +156,7 @@ _watch_display:
 
 delete_all:
 	@$(DOCKER) unpause $$($(DOCKER) ps -aq --filter status=paused) 2>/dev/null || true
+	@rm -f version-*/.paused_*
 	@$(DOCKER) kill --signal KILL -a
 	@$(DOCKER) rm -f $$($(DOCKER) ps -aq) 2>/dev/null || true
 	@$(DOCKER) kill --signal KILL -a

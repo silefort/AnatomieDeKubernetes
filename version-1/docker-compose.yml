@@ -30,8 +30,8 @@ services:
       sh -c "
       echo '{}' > /app/apps.json &&
       echo 'Démarrage de l app-controller et de l api-server' &&
-      python3 -W ignore app/app_controller.py &
-      python3 -W ignore app/api_server.py
+      python3 -W ignore app_controller.py &
+      python3 -W ignore api_server.py
       "
     volumes:
       - .:/app
