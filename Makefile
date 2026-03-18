@@ -21,6 +21,7 @@ help:
 	@echo "  make node_start NODE=<node>              - Unpause un noeud"
 	@echo "  make node_ssh NODE=<node>                - Se connecte a un noeud"
 	@echo "  make logs                                - Affiche les logs avec couleurs"
+	@echo "  make watch                               - Watch l'état du cluster (version-2)"
 	@echo "  make delete_all                          - Supprime tous les containers"
 
 build:
@@ -137,9 +138,14 @@ watch:
 	watch -t -n 2 "VERSION=$(VERSION) $(MAKE) --no-print-directory _watch_display"
 
 _watch_display:
-	@if [ "$(VERSION)" = "1" ]; then \
+	@if [ "$(VERSION)" = "2" ]; then \
+		echo "=== NOEUDS (nodes.json) ===" ; \
+		python3 -c 'import json,os;from datetime import datetime,timezone;d=json.load(open("version-$(VERSION)/nodes.json")) if os.path.exists("version-$(VERSION)/nodes.json") else {};now=datetime.now(timezone.utc).replace(tzinfo=None);print("%-20s %-30s %s"%("NOEUD","HEARTBEAT",""));[print("%-20s %-30s il y a %ds"%(n,t,round((now-datetime.fromisoformat(t)).total_seconds()))) for n,t in sorted(d.items())] if d else print("  (aucun heartbeat)")' ; \
+		echo ; \
+	fi ; \
+	if [ "$(VERSION)" = "1" ] || [ "$(VERSION)" = "2" ]; then \
 		echo "=== ÉTAT DÉSIRÉ (apps.json) ===" ; \
-		python3 -c 'import json,os;d=json.load(open("version-$(VERSION)/apps.json")) if os.path.exists("version-$(VERSION)/apps.json") else {};[print(f"  {n}: {json.dumps(i)}") for n,i in sorted(d.items())] if d else print("  (aucune app)")' ; \
+		python3 -c 'import json,os;d=json.load(open("version-$(VERSION)/apps.json")) if os.path.exists("version-$(VERSION)/apps.json") else {};[print(f"{n}: {json.dumps(i)}") for n,i in sorted(d.items())] if d else print("  (aucune app)")' ; \
 		echo ; \
 	fi ; \
 	echo "=== APPS EN COURS ===" ; \
@@ -156,6 +162,7 @@ _watch_display:
 
 delete_all:
 	@$(DOCKER) unpause $$($(DOCKER) ps -aq --filter status=paused) 2>/dev/null || true
+	@rm -f version-*/.paused_*
 	@$(DOCKER) kill --signal KILL -a
 	@$(DOCKER) rm -f $$($(DOCKER) ps -aq) 2>/dev/null || true
 	@$(DOCKER) kill --signal KILL -a
