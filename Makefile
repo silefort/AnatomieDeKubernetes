@@ -21,6 +21,7 @@ help:
 	@echo "  make node_start NODE=<node>              - Unpause un noeud"
 	@echo "  make node_ssh NODE=<node>                - Se connecte a un noeud"
 	@echo "  make logs                                - Affiche les logs avec couleurs"
+	@echo "  make watch                               - Watch l'état du cluster (version-2)"
 	@echo "  make delete_all                          - Supprime tous les containers"
 
 build:
