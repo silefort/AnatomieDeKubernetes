@@ -1,5 +1,11 @@
 # Anatomie de Kubernetes
 
+---
+
+**Duck Conf 2026** · *Anatomie de Kubernetes : ce qu'on aurait aimé comprendre plus tôt* · avec [Léa Boyer](https://www.linkedin.com/in/l%C3%A9a-boyer-408641189/) · [Slides →](./Slides_Duck_Conf_20260324.pdf)
+
+---
+
 Ce projet implémente une version simplifiée d'un orchestrateur de containers pour comprendre en implémentant comment fonctionne Kubernetes
 
 Le cluster est simulé localement avec Podman, les noeuds sont des containers, les applications aussi (`podman ps` permet de voir à plat les noeuds et les applications qui tournent)
