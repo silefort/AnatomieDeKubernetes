@@ -1,6 +1,14 @@
 # Anatomie de Kubernetes
 
-Ce projet implémente une version simplifiée d'un orchestrateur de containers pour comprendre en implémentant comment fonctionne Kubernetes
+---
+
+**Duck Conf 2026** · *Anatomie de Kubernetes : ce qu'on aurait aimé comprendre plus tôt* · avec [Léa Boyer](https://www.linkedin.com/in/l%C3%A9a-boyer-408641189/) · [Slides →](./Slides_Duck_Conf_20260324.pdf)
+
+---
+
+Ce projet est un compagnon au Talk "Anatomie de Kubernetes : ce qu'on aurait aimé comprendre plus tôt" donné avec Léa Boyer à la Duck Conf 2026.
+
+Dans ce talk nous avons choisi de réimplémenter une version simplifiée d'un orchestrateur de containers pour comprendre comment et pourquoi Kubernetes a été implémenté comme il est.
 
 Le cluster est simulé localement avec Podman, les noeuds sont des containers, les applications aussi (`podman ps` permet de voir à plat les noeuds et les applications qui tournent)
 
@@ -49,25 +57,25 @@ Makefile
 
 ### Version 0
 
-Un scheduler naïf : l'`app-manager` expose une API HTTP et déploie les applications sur les noeuds en round-robin via SSH.
+Un gestionnaire d'applications naïf : l'`app-manager` expose une API HTTP et déploie les applications sur les noeuds en round-robin via SSH.
 
 ### Version 1
 
-Introduction du **mode déclaratif** et de la **boucle de contrôle**.
+Introduction du **mode déclaratif**, de la **boucle de contrôle** et d'une approche **level trigger**
 
-L'`app-manager` regroupe deux responsabilités dans un seul composant centralisé :
+L'`app-manager` regroupe deux responsabilités dans un composant centralisé :
 - **`api_server`** : reçoit et stocke l'état désiré dans `apps.json`
 - **`app_controller`** : tourne en continu, interroge chaque noeud via SSH pour observer l'état réel, et applique les corrections (`docker run` / `docker rm`)
 
 ### Version 2
 
-Introduction de l'**architecture distribuée** et de la **tolérance aux pannes**.
+Séparation de l'`app-manager` en plusieurs **composants autonomes** qui discutent via une **api centralisée**
 
 Les responsabilités sont éclatées sur plusieurs contrôleurs indépendants :
 - **`api_server`** : stocke l'état désiré (`apps.json`) et reçoit les heartbeats des noeuds (`nodes.json`)
 - **`app_controller`** : tourne sur chaque noeud, envoie un heartbeat périodique à l'API Server et reconcilie l'état local
 - **`node_binder`** : détecte les applications sans noeud assigné et les attribue en round-robin
-- **`node_controller`** : surveille les heartbeats, détecte les noeuds en panne et libère leurs applications pour qu'elles soient réassignées
+- **`node_controller`** : surveille les heartbeats, détecte les noeuds en panne et "désassigne" leurs applications pour qu'elles soient réassignées
 
 ## Utilisation
 
@@ -97,3 +105,29 @@ make logs VERSION=<0|1|2>
 # Arrêter le cluster
 make cluster_stop VERSION=<0|1|2>
 ```
+
+## Références
+
+### Kubernetes :
+- [Kubernetes - The documentary](https://www.youtube.com/watch?v=BE77h7dmoQU)
+- [Joe Beda explains some of the inner workings of Kubernetes - Joe Beda](https://www.cncf.io/blog/2017/11/07/joe-beda-explains-inner-workings-kubernetes)
+- [The Technical History of Kubernetes - Brian Grant](https://itnext.io/the-technical-history-of-kubernetes-2fe1988b522a)
+- [Borg, Omega, and Kubernetes - Google](https://static.googleusercontent.com/media/research.google.com/fr//pubs/archive/44843.pdf)
+- [Understanding Kubernetes Through Real-World Phenomena and Analogies - Lucas Käldström](https://www.youtube.com/watch?v=GpJz-Ab8R9M)
+- [Two reasons Kubernetes is so complex - Nelson Elhage](https://buttondown.com/nelhage/archive/two-reasons-kubernetes-is-so-complex)
+- [Fundamentals of Declarative Application Management in Kubernetes - Zhang Lei](https://www.alibabacloud.com/blog/fundamentals-of-declarative-application-management-in-kubernetes_596265)
+- [Kubernetes Design Principles - Kubernetes Github repository](https://github.com/kubernetes/design-proposals-archive/blob/main/architecture/principles.md)
+- [Building Kubernetes (a lite version) from scratch in Go - Owumi Festus](https://medium.com/@owumifestus/building-kubernetes-a-lite-version-from-scratch-in-go-7156ed1fef9e)
+- [The Kubernetes Resource Model (KRM) - Kubernetes Github repository](https://github.com/kubernetes/design-proposals-archive/blob/main/architecture/resource-management.md)
+
+### Level Trigger vs. Edge Trigger :
+- [Level Triggering and Reconciliation in Kubernetes - @jbows](https://hackernoon.com/level-triggering-and-reconciliation-in-kubernetes-1f17fe30333d)
+
+### Control Theory :
+- [Applying control theory concepts in software applications - Dr. Wolfgang Winter](https://www.theserverside.com/feature/Applying-control-theory-concepts-in-software-applications)
+- [Reconciliation Pattern, Control Theory and Cluster API: The Holy Trinity - Sachin Singhy](https://archive.fosdem.org/2023/schedule/event/goreconciliation/)
+- [Desired State How React, Kubernetes and control Theory have lots in common - Branislav Jenco](https://www.youtube.com/watch?v=TENp6xaSd3M)
+- [Control Theory in Container Fleet Management - Vallery Lancey](https://www.infoq.com/presentations/controllers-observing-systems/)
+
+### Promise Theory :
+- [Thinking in Promises - Mark Burgess](https://api.pageplace.de/preview/DT0400.9781491918494_A25184803/preview-9781491918494_A25184803.pdf)
