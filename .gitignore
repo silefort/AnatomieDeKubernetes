@@ -1,7 +1,6 @@
 *.log
 *.bk
 *.env
-demo/
 
 # Artefacts runtime cluster
 .paused_*
